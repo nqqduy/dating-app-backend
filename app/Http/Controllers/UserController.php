@@ -53,7 +53,21 @@ class UserController extends Controller
             ]);
     }
 
-    public function find_one() {
-        
+    // {
+    //     id: 1,
+    //     name: "Tác giả 1",
+    //     bio: "Đây là thông tin của tác giả 1.",
+    //     friends: ["Tác giả 2", "Tác giả 3"],
+    //       isFriend : true
+    //   }
+    public function find_one(Request $request, $id) {
+        $userId = $request->jwtUserId;
+        $user = DB::table('users')->where('id', '=', $id)
+            ->select(
+                'users.id',
+                'users.name',
+                ''
+            )
+            ->first();
     }
 }
