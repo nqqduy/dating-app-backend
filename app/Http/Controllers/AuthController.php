@@ -83,6 +83,7 @@ class AuthController extends Controller
                 'access_token' => $token->get(),
                 'token_type' => 'jwt',
                 'expires_in' => auth()->factory()->getTTL() * 60,
+                'role' => $user->role,
                 'name' => $user->name,
                 'avatar' => $user->avatar,
                 'username' => $user->username,

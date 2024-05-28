@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\UserController;
+use App\Middleware\AuthenticateWithToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,3 +30,19 @@ Route::prefix('auth')->group(function() {
 ROUTE::prefix('file')->group(function() {
     Route::post('', [FileController::class, 'uploadFile']);
 });
+
+// ->middleware(EnsureTokenIsValid::class);
+Route::middleware(AuthenticateWithToken::class)->group(function () {
+    Route::prefix('posts')->group(function() {
+        Route::post('', [PostController::class, 'create']);
+        Route::get('', [PostController::class, 'find_many']);
+    
+        Route::post('/{id}/comments', [PostController::class, 'create_comment']);
+    });
+    
+    Route::prefix('users')->group(function() {
+        Route::get('', [UserController::class, 'find_many']);
+        Route::get('/{id}', [UserController::class, 'find_one']);
+    });
+});
+
