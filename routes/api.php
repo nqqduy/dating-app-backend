@@ -43,6 +43,7 @@ Route::middleware(AuthenticateWithToken::class)->group(function () {
     Route::prefix('users')->group(function() {
         Route::get('', [UserController::class, 'find_many']);
         Route::get('/{id}', [UserController::class, 'find_one']);
+        Route::post('/{id}/friends', [UserController::class, 'create_request_friends']);
     });
 });
 

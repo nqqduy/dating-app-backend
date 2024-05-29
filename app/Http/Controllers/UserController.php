@@ -54,13 +54,6 @@ class UserController extends Controller
             ]);
     }
 
-    // {
-    //     id: 1,
-    //     name: "Tác giả 1",
-    //     bio: "Đây là thông tin của tác giả 1.",
-    //     friends: ["Tác giả 2", "Tác giả 3"],
-    //       isFriend : true
-    //   }
     public function find_one(Request $request, $id) {
         $userId = $request->jwtUserId;
         $user = User::with(['requestFriends' => function($query) {
@@ -101,6 +94,29 @@ class UserController extends Controller
             [
                 'message' => 'Successfully',
                 'data' => $formattedResult
+            ]);
+    }
+
+    public function create_request_friends(Request $request, $id) {
+        $userId = $request->jwtUserId;
+        if($userId == $id) {
+            return response()->json(
+                [
+                    'message' => 'Bạn không thể gửi yêu cầu kết bạn tới người này'
+                ]); 
+        }
+
+        $insertData = [
+            'requestId' => $userId,
+            'responseId' => $id,
+            'status' => 'PENDING'
+        ];
+
+        DB::table('friends')->insert($insertData);
+        return response()->json(
+            [
+                'message' => 'Đã gửi yêu cầu kết bạn',
+                'data' => 1
             ]);
     }
 }
