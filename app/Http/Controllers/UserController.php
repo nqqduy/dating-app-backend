@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+use function Laravel\Prompts\table;
+
 class UserController extends Controller
 {
 
@@ -117,6 +119,34 @@ class UserController extends Controller
             [
                 'message' => 'Đã gửi yêu cầu kết bạn',
                 'data' => 1
+            ]);
+    }
+
+    public function find_many_friends_by_user(Request $request) {
+        $userId = $request->jwtUserId;
+        $status = $request->input('status', null);
+        
+        $query = DB::table('friends');
+        print_r($status);
+        if($status) {
+            $query->where('status', $status);
+        }
+
+        $result =  $query->join('users', 'friends.requestId', '=', 'users.id')
+            ->where('responseId', $userId)
+            ->get([
+                'friends.id as friendId',
+                'friends.status',
+
+                'users.id as userId',
+                'users.name',
+                'users.avatar',
+            ]);
+
+        return response()->json(
+            [
+                'message' => 'Successfully',
+                'data' => $result
             ]);
     }
 }
