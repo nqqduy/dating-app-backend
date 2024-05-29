@@ -24,5 +24,11 @@ class Friend extends Model
         'updated_at',
     ];
 
-   
+    public function requestUser() {
+        return $this->belongsTo(User::class, 'requestId');
+    }
+
+    public function responseUser() {
+        return $this->belongsTo(User::class, 'responseId');
+    }
 }

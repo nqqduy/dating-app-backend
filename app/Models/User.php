@@ -45,4 +45,12 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Comment::class, 'userId');
     }
+
+    public function requestFriends() {
+        return $this->hasMany(Friend::class, 'requestId');
+    }
+
+    public function responseFriends() {
+        return $this->hasMany(Friend::class, 'responseId');
+    }
 }

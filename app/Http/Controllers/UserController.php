@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -62,12 +63,44 @@ class UserController extends Controller
     //   }
     public function find_one(Request $request, $id) {
         $userId = $request->jwtUserId;
-        $user = DB::table('users')->where('id', '=', $id)
-            ->select(
-                'users.id',
-                'users.name',
-                ''
-            )
+        $user = User::with(['requestFriends' => function($query) {
+            $query->where('status', 'APPROVED');
+        }, 'requestFriends.requestUser', 'responseFriends' => function($query) {
+            $query->where('status', 'APPROVED');
+        }, 'responseFriends.responseUser'])
+            ->where('id', $id)
             ->first();
+        $isFriend = DB::table('friends')->where('status', 'APPROVED')
+            ->where(function($query) use ($id, $userId) {
+                $query->where(function($query) use ($id, $userId) {
+                    $query->where('requestId', $id)
+                          ->where('responseId', $userId);
+                })->orWhere(function($query) use ($id, $userId) {
+                    $query->where('requestId', $userId)
+                          ->where('responseId', $id);
+                });
+            })->exists();
+        
+        $friendFromRequest = $user->requestFriends->map(function ($friend) {
+            return $friend->requestUser->name;
+        });
+        
+        $friendFromResponse = $user->responseFriends->map(function ($friend) {
+            return $friend->responseUser->name;
+        });
+
+        $formattedResult = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'bio' => $user->bio,
+                'isFriend' => $isFriend,
+                'friends' => $friendFromRequest->merge($friendFromResponse)
+            ];
+        
+        return response()->json(
+            [
+                'message' => 'Successfully',
+                'data' => $formattedResult
+            ]);
     }
 }
