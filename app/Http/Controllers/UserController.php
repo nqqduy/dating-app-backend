@@ -61,7 +61,7 @@ class UserController extends Controller
         $user = User::
             where('id', $id)
             ->first();
-        $isFriend = DB::table('friends')->where('status', 'APPROVED')
+        $friendOfTwoPeople = DB::table('friends')
             ->where(function($query) use ($id, $userId) {
                 $query->where(function($query) use ($id, $userId) {
                     $query->where('requestId', $id)
@@ -70,7 +70,7 @@ class UserController extends Controller
                     $query->where('requestId', $userId)
                           ->where('responseId', $id);
                 });
-            })->exists();
+            })->get();
 
         $friends = DB::table('friends')->where('status', 'APPROVED')->where(function ($query) use ($id) {
                 $query->where('requestId', '=', $id)
@@ -88,12 +88,26 @@ class UserController extends Controller
             } 
             return $friend->requestUserName;
         });
-
+        
+        $isFriend = false;
+        $pendingStatus = null;
+        
+        if (!$friendOfTwoPeople->isEmpty()) {
+            foreach ($friendOfTwoPeople as $friend) {
+                if ($friend->status === 'APPROVED') {
+                    $isFriend = true;
+                    break;
+                }
+                $pendingStatus = $friend->status;
+            }
+        }
+        
         $formattedResult = [
                 'id' => $user->id,
                 'name' => $user->name,
                 'bio' => $user->bio,
                 'isFriend' => $isFriend,
+                'status' => $pendingStatus,
                 'friends'  => $friends,
             ];
         
@@ -158,15 +172,23 @@ class UserController extends Controller
 
     public function accept_or_decline_request(Request $request, $id) {
         $action = $request->input('action', null);
+        $userId = $request->jwtUserId;
+        $query = DB::table('friends')
+        ->where(function($query) use ($id, $userId) {
+            $query->where(function($query) use ($id, $userId) {
+                $query->where('requestId', $id)
+                      ->where('responseId', $userId);
+            })->orWhere(function($query) use ($id, $userId) {
+                $query->where('requestId', $userId)
+                      ->where('responseId', $id);
+            });
+        });
         if($action === 'ACCEPT') {
-            DB::table('friends')
-            ->where('id', $id)
-            ->update([
+            $query->update([
                 'status' => 'APPROVED'
             ]);
         } elseif ($action === 'DECLINE') {
-            DB::table('friends')
-            ->where('id', $id)->delete();
+            $query->delete();
         }
         return response()->json(
             [
