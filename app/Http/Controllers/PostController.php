@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class PostController extends Controller
 {
-    public function create(Request $request) {
+    public function create(Request $request)
+    {
         try {
             $authorId = $request->jwtUserId;
             $content = $request->input('content');
@@ -29,28 +30,30 @@ class PostController extends Controller
                 'message' => 'Thêm thành công',
                 'data' => 1
             ]);
-        } catch(QueryException $e) {
+        } catch (QueryException $e) {
             return response()->json(
                 [
                     'message' => 'Có lỗi xảy ra'
-                ], 500
+                ],
+                500
             );
         }
     }
 
-    public function find_many(Request $request) {
-        $pageIndex = $request->input('pageIndex', 1); 
-        $pageSize = $request->input('pageSize', 10); 
-        $userId = $request->input('userId', null); 
+    public function find_many(Request $request)
+    {
+        $pageIndex = $request->input('pageIndex', 1);
+        $pageSize = $request->input('pageSize', 10);
+        $userId = $request->input('userId', null);
 
         $query = Post::with(['author', 'comments.user'])
             ->orderBy('created_at', 'DESC')
-            ->select('posts.id', 'posts.content', 'posts.date', 'authorId');
+            ->select('posts.id', 'posts.content', 'posts.date', 'authorId', "posts.title");
 
-        if($userId) {
+        if ($userId) {
             $query = $query->where('authorId', '=', $userId);
         }
-            
+
         $post_list = $query->paginate($pageSize, ['*'], 'page', $pageIndex);
 
         $formattedResult = $post_list->getCollection()->map(function ($post) {
@@ -60,6 +63,7 @@ class PostController extends Controller
                 'date' => $post->date,
                 'author' => $post->author->name,
                 'authorId' => $post->author->id,
+                "title" => $post->title,
 
                 'comments' => $post->comments->map(function ($comment) {
                     return [
@@ -78,10 +82,12 @@ class PostController extends Controller
             [
                 'message' => 'Successfully',
                 'data' => $post_list
-            ]);
+            ]
+        );
     }
 
-    public function create_comment(Request $request, $id) {
+    public function create_comment(Request $request, $id)
+    {
         $userId = $request->jwtUserId;
         $content = $request->input('content');
 
@@ -98,6 +104,7 @@ class PostController extends Controller
             [
                 'message' => 'Thành công',
                 'data' => 1
-            ]);
+            ]
+        );
     }
 }
