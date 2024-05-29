@@ -58,12 +58,8 @@ class UserController extends Controller
 
     public function find_one(Request $request, $id) {
         $userId = $request->jwtUserId;
-        $user = User::with(['requestFriends' => function($query) {
-            $query->where('status', 'APPROVED');
-        }, 'requestFriends.requestUser', 'responseFriends' => function($query) {
-            $query->where('status', 'APPROVED');
-        }, 'responseFriends.responseUser'])
-            ->where('id', $id)
+        $user = User::
+            where('id', $id)
             ->first();
         $isFriend = DB::table('friends')->where('status', 'APPROVED')
             ->where(function($query) use ($id, $userId) {
@@ -75,13 +71,22 @@ class UserController extends Controller
                           ->where('responseId', $id);
                 });
             })->exists();
-        
-        $friendFromRequest = $user->requestFriends->map(function ($friend) {
-            return $friend->requestUser->name;
-        });
-        
-        $friendFromResponse = $user->responseFriends->map(function ($friend) {
-            return $friend->responseUser->name;
+
+        $friends = DB::table('friends')->where('status', 'APPROVED')->where(function ($query) use ($id) {
+                $query->where('requestId', '=', $id)
+                    ->OrWhere('responseId', '=', $id);
+            })->leftJoin('users as requestUser', 'requestUser.id', '=', 'friends.requestId')
+                ->leftJoin('users as responseUser', 'responseUser.id', '=', 'friends.responseId')->get([
+                    'requestUser.id as requestUserId',
+                    'requestUser.name as requestUserName',
+                    'responseUser.id as responseUserId',
+                    'responseUser.name as responseUserName',
+                ]);
+        $friends = $friends->map(function ($friend) use ($id) {
+            if($friend->responseUserId != $id) {
+                return $friend->responseUserName;
+            } 
+            return $friend->requestUserName;
         });
 
         $formattedResult = [
@@ -89,7 +94,7 @@ class UserController extends Controller
                 'name' => $user->name,
                 'bio' => $user->bio,
                 'isFriend' => $isFriend,
-                'friends' => $friendFromRequest->merge($friendFromResponse)
+                'friends'  => $friends,
             ];
         
         return response()->json(
@@ -127,7 +132,7 @@ class UserController extends Controller
         $status = $request->input('status', null);
         
         $query = DB::table('friends');
-        print_r($status);
+
         if($status) {
             $query->where('status', $status);
         }
