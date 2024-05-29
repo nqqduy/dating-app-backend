@@ -134,6 +134,7 @@ class UserController extends Controller
 
         $result =  $query->join('users', 'friends.requestId', '=', 'users.id')
             ->where('responseId', $userId)
+            ->orderBy('friends.created_at', 'DESC')
             ->get([
                 'friends.id as friendId',
                 'friends.status',
@@ -162,6 +163,26 @@ class UserController extends Controller
             DB::table('friends')
             ->where('id', $id)->delete();
         }
+        return response()->json(
+            [
+                'message' => 'Successfully',
+                'data' => 1
+            ]);
+    }
+
+    public function send_message(Request $request, $id) {
+        $content = $request->input('content');
+        $senderId = $request->jwtUserId;
+        $receiveId = $id;
+
+        $insertData = [
+            "content" => $content,
+            "senderId" => $senderId,
+            "receiveId" => $receiveId
+        ];
+
+        DB::table('messenger')->insert($insertData);
+
         return response()->json(
             [
                 'message' => 'Successfully',
