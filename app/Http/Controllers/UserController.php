@@ -149,4 +149,23 @@ class UserController extends Controller
                 'data' => $result
             ]);
     }
+
+    public function accept_or_decline_request(Request $request, $id) {
+        $action = $request->input('action', null);
+        if($action === 'ACCEPT') {
+            DB::table('friends')
+            ->where('id', $id)
+            ->update([
+                'status' => 'APPROVED'
+            ]);
+        } elseif ($action === 'DECLINE') {
+            DB::table('friends')
+            ->where('id', $id)->delete();
+        }
+        return response()->json(
+            [
+                'message' => 'Successfully',
+                'data' => 1
+            ]);
+    }
 }

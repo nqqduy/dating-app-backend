@@ -43,8 +43,9 @@ Route::middleware(AuthenticateWithToken::class)->group(function () {
     Route::prefix('users')->group(function() {
         Route::get('', [UserController::class, 'find_many']);
         Route::get('/friends', [UserController::class, 'find_many_friends_by_user']);
-        Route::get('/{id}', [UserController::class, 'find_one']);
+        Route::patch('/friends/{id}/action', [UserController::class, 'accept_or_decline_request']);
         Route::post('/{id}/friends', [UserController::class, 'create_request_friends']);
+        Route::get('/{id}', [UserController::class, 'find_one']);
     });
 });
 
