@@ -12,86 +12,88 @@ use function Laravel\Prompts\table;
 class UserController extends Controller
 {
 
-    public function find_many(Request $request) {
+    public function find_many(Request $request)
+    {
         $userId = $request->jwtUserId;
-        $pageIndex = $request->input('pageIndex', 1); 
-        $pageSize = $request->input('pageSize', 10); 
+        $pageIndex = $request->input('pageIndex', 1);
+        $pageSize = $request->input('pageSize', 10);
         $isFriend = $request->input('isFriend');
 
         $query = DB::table('users')
-        ->leftJoin('friends as requestFriends', 'requestFriends.requestId', '=', 'users.id')
-        ->leftJoin('friends as responseFriends', 'responseFriends.responseId', '=', 'users.id')
-        ->select(
-            'users.id',
-            'users.name',
-            'users.avatar',
-            'requestFriends.status as requestFriendsStatus',
-            'responseFriends.status as responseFriendsStatus',
-        )
-        ->where('users.id', '<>', $userId);
-    
-        if($isFriend === 'true') {
-            $query->where(function($query) {
+            ->leftJoin('friends as requestFriends', 'requestFriends.requestId', '=', 'users.id')
+            ->leftJoin('friends as responseFriends', 'responseFriends.responseId', '=', 'users.id')
+            ->select(
+                'users.id',
+                'users.name',
+                'users.avatar',
+                'requestFriends.status as requestFriendsStatus',
+                'responseFriends.status as responseFriendsStatus',
+            )
+            ->where('users.id', '<>', $userId);
+
+        if ($isFriend === 'true') {
+            $query->where(function ($query) {
                 $query->where('requestFriends.status', '=', 'APPROVED')
                     ->orWhere('responseFriends.status', '=', 'APPROVED');
             });
-        } elseif($isFriend === 'false') {
-            $query->where(function($query) {
+        } elseif ($isFriend === 'false') {
+            $query->where(function ($query) {
                 $query->where('requestFriends.status', '=', 'PENDING')
                     ->orWhere('responseFriends.status', '=', 'PENDING');
             });
         }
-        
+
         $users = $query->paginate($pageSize, ['*'], 'page', $pageIndex);
-        
+
         foreach ($users as $user) {
             $user->isFriend = ($user->requestFriendsStatus === 'APPROVED' || $user->responseFriendsStatus === 'APPROVED');
             unset($user->requestFriendsStatus, $user->responseFriendsStatus);
         }
-    
+
         return response()->json(
             [
                 'message' => 'Successfully',
                 'data' => $users
-            ]);
+            ]
+        );
     }
 
-    public function find_one(Request $request, $id) {
+    public function find_one(Request $request, $id)
+    {
         $userId = $request->jwtUserId;
-        $user = User::
-            where('id', $id)
+        $user = User::where('id', $id)
             ->first();
         $friendOfTwoPeople = DB::table('friends')
-            ->where(function($query) use ($id, $userId) {
-                $query->where(function($query) use ($id, $userId) {
+            ->where(function ($query) use ($id, $userId) {
+                $query->where(function ($query) use ($id, $userId) {
                     $query->where('requestId', $id)
-                          ->where('responseId', $userId);
-                })->orWhere(function($query) use ($id, $userId) {
+                        ->where('responseId', $userId);
+                })->orWhere(function ($query) use ($id, $userId) {
                     $query->where('requestId', $userId)
-                          ->where('responseId', $id);
+                        ->where('responseId', $id);
                 });
             })->get();
 
         $friends = DB::table('friends')->where('status', 'APPROVED')->where(function ($query) use ($id) {
-                $query->where('requestId', '=', $id)
-                    ->OrWhere('responseId', '=', $id);
-            })->leftJoin('users as requestUser', 'requestUser.id', '=', 'friends.requestId')
-                ->leftJoin('users as responseUser', 'responseUser.id', '=', 'friends.responseId')->get([
-                    'requestUser.id as requestUserId',
-                    'requestUser.name as requestUserName',
-                    'responseUser.id as responseUserId',
-                    'responseUser.name as responseUserName',
-                ]);
+            $query->where('requestId', '=', $id)
+                ->OrWhere('responseId', '=', $id);
+        })->leftJoin('users as requestUser', 'requestUser.id', '=', 'friends.requestId')
+            ->leftJoin('users as responseUser', 'responseUser.id', '=', 'friends.responseId')->get([
+                'requestUser.id as requestUserId',
+                'requestUser.name as requestUserName',
+                'responseUser.id as responseUserId',
+                'responseUser.name as responseUserName',
+            ]);
         $friends = $friends->map(function ($friend) use ($id) {
-            if($friend->responseUserId != $id) {
+            if ($friend->responseUserId != $id) {
                 return $friend->responseUserName;
-            } 
+            }
             return $friend->requestUserName;
         });
-        
+
         $isFriend = false;
         $pendingStatus = null;
-        
+
         if (!$friendOfTwoPeople->isEmpty()) {
             foreach ($friendOfTwoPeople as $friend) {
                 if ($friend->status === 'APPROVED') {
@@ -101,30 +103,34 @@ class UserController extends Controller
                 $pendingStatus = $friend->status;
             }
         }
-        
+
         $formattedResult = [
-                'id' => $user->id,
-                'name' => $user->name,
-                'bio' => $user->bio,
-                'isFriend' => $isFriend,
-                'status' => $pendingStatus,
-                'friends'  => $friends,
-            ];
-        
+            'id' => $user->id,
+            'name' => $user->name,
+            'bio' => $user->bio,
+            "avatar" => $user->avatar,
+            'isFriend' => $isFriend,
+            'status' => $pendingStatus,
+            'friends'  => $friends,
+        ];
+
         return response()->json(
             [
                 'message' => 'Successfully',
                 'data' => $formattedResult
-            ]);
+            ]
+        );
     }
 
-    public function create_request_friends(Request $request, $id) {
+    public function create_request_friends(Request $request, $id)
+    {
         $userId = $request->jwtUserId;
-        if($userId == $id) {
+        if ($userId == $id) {
             return response()->json(
                 [
                     'message' => 'Bạn không thể gửi yêu cầu kết bạn tới người này'
-                ]); 
+                ]
+            );
         }
 
         $insertData = [
@@ -138,16 +144,18 @@ class UserController extends Controller
             [
                 'message' => 'Đã gửi yêu cầu kết bạn',
                 'data' => 1
-            ]);
+            ]
+        );
     }
 
-    public function find_many_friends_by_user(Request $request) {
+    public function find_many_friends_by_user(Request $request)
+    {
         $userId = $request->jwtUserId;
         $status = $request->input('status', null);
-        
+
         $query = DB::table('friends');
 
-        if($status) {
+        if ($status) {
             $query->where('status', $status);
         }
 
@@ -167,37 +175,54 @@ class UserController extends Controller
             [
                 'message' => 'Successfully',
                 'data' => $result
-            ]);
+            ]
+        );
     }
 
-    public function accept_or_decline_request(Request $request, $id) {
+    public function accept_or_decline_request(Request $request, $id)
+    {
         $action = $request->input('action', null);
+        print_r($action);
+        print_r($id);
+
         $userId = $request->jwtUserId;
-        $query = DB::table('friends')
-        ->where(function($query) use ($id, $userId) {
-            $query->where(function($query) use ($id, $userId) {
-                $query->where('requestId', $id)
-                      ->where('responseId', $userId);
-            })->orWhere(function($query) use ($id, $userId) {
-                $query->where('requestId', $userId)
-                      ->where('responseId', $id);
-            });
-        });
-        if($action === 'ACCEPT') {
+        print_r($userId);
+        $query = DB::table('friends')->where('id', $id);
+
+        if ($action === 'ACCEPT') {
             $query->update([
                 'status' => 'APPROVED'
             ]);
+
+            return response()->json(
+                [
+                    'message' => 'Successfully',
+                    'data' => 1
+                ]
+            );
         } elseif ($action === 'DECLINE') {
-            $query->delete();
+            $query = DB::table('friends')
+                ->where(function ($query) use ($id, $userId) {
+                    $query->where(function ($query) use ($id, $userId) {
+                        $query->where('requestId', $id)
+                            ->where('responseId', $userId);
+                    })->orWhere(function ($query) use ($id, $userId) {
+                        $query->where('requestId', $userId)
+                            ->where('responseId', $id);
+                    });
+                })->delete();
+
+            return response()->json(
+                [
+                    'message' => 'Successfully',
+                    'data' => 0
+                ]
+            );
         }
-        return response()->json(
-            [
-                'message' => 'Successfully',
-                'data' => 1
-            ]);
     }
 
-    public function send_message(Request $request, $id) {
+    public function send_message(Request $request, $id)
+    {
         $content = $request->input('content');
         $senderId = $request->jwtUserId;
         $receiveId = $id;
@@ -214,6 +239,7 @@ class UserController extends Controller
             [
                 'message' => 'Successfully',
                 'data' => 1
-            ]);
+            ]
+        );
     }
 }
