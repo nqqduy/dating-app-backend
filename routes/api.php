@@ -47,6 +47,7 @@ Route::middleware(AuthenticateWithToken::class)->group(function () {
         Route::post('/{id}/friends', [UserController::class, 'create_request_friends']);
 
         Route::post('/{id}/messages', [UserController::class, 'send_message']);
+        Route::get('/{id}/messages', [UserController::class, 'get_list_message']);
 
         Route::get('/{id}', [UserController::class, 'find_one']);
     });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -206,7 +207,8 @@ class UserController extends Controller
         $insertData = [
             "content" => $content,
             "senderId" => $senderId,
-            "receiveId" => $receiveId
+            "receiveId" => $receiveId,
+            "created_at" => Carbon::now('Asia/Ho_Chi_Minh')
         ];
 
         DB::table('messenger')->insert($insertData);
@@ -215,6 +217,51 @@ class UserController extends Controller
             [
                 'message' => 'Successfully',
                 'data' => 1
+            ]);
+    }
+
+    public function get_list_message(Request $request, $id) {
+        $ownId = $request->jwtUserId;
+        $chatId = $id;
+
+        $messages = DB::table('messenger')->where(function($query) use ($ownId, $chatId) {
+            $query->where(function($query) use ($ownId, $chatId) {
+                $query->where('senderId', $ownId)
+                      ->where('receiveId', $chatId);
+            })->orWhere(function($query) use ($ownId, $chatId) {
+                $query->where('senderId', $chatId)
+                      ->where('receiveId', $ownId);
+            });
+        })
+        ->leftJoin('users as sender', 'messenger.senderId', '=', 'sender.id')
+        ->leftJoin('users as receiver', 'messenger.receiveId', '=', 'receiver.id')
+        ->select(
+            'messenger.id as id',
+            'messenger.content as content',
+            'messenger.created_at as date',
+            'sender.name as senderName',
+            'sender.id as senderId',
+            'sender.avatar as senderAvatar',
+            'receiver.name as receiverName',
+            'receiver.avatar as receiverAvatar',
+            'receiver.avatar as receiverId'
+        )
+        ->orderBy('messenger.created_at', 'ASC')
+        ->get();
+        
+
+        foreach ($messages as $message) {
+            $isMessageRightSide = $ownId === $message->senderId;
+            if($isMessageRightSide) {
+                $message->side = 'RIGHT';
+            } else {
+                $message->side = 'LEFT';
+            }
+        }
+        return response()->json(
+            [
+                'message' => 'Successfully',
+                'data' => $messages
             ]);
     }
 }
