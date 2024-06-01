@@ -105,6 +105,7 @@ class UserController extends Controller
         $formattedResult = [
                 'id' => $user->id,
                 'name' => $user->name,
+                'avatar' => $user->avatar,
                 'bio' => $user->bio,
                 'isFriend' => $isFriend,
                 'status' => $pendingStatus,
