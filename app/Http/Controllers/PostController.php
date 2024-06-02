@@ -107,4 +107,63 @@ class PostController extends Controller
             ]
         );
     }
+
+
+    public function update(Request $request, $postId)
+    {
+        try {
+            $content = $request->input('content');
+            $title = $request->input('title');
+
+            // Kiểm tra xem bài viết có tồn tại không
+            $post = DB::table('posts')->where('id', $postId)->first();
+            if (!$post) {
+                return response()->json([
+                    'message' => 'Bài viết không tồn tại'
+                ], 404);
+            }
+
+
+
+            // Cập nhật thông tin bài viết
+            DB::table('posts')
+                ->where('id', $postId)
+                ->update([
+                    'title' => $title,
+                    'content' => $content,
+                    'updated_at' => Carbon::now('Asia/Ho_Chi_Minh')
+                ]);
+
+            return response()->json([
+                'message' => 'Chỉnh sửa bài viết thành công'
+            ]);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Có lỗi xảy ra'
+            ], 500);
+        }
+    }
+
+
+    public function delete($postId)
+    {
+        try {
+            $post = DB::table('posts')->where('id', $postId)->first();
+            if (!$post) {
+                return response()->json([
+                    'message' => 'Bài viết không tồn tại'
+                ], 404);
+            }
+
+            DB::table('posts')->where('id', $postId)->delete();
+
+            return response()->json([
+                'message' => 'Xóa bài viết thành công'
+            ]);
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Có lỗi xảy ra'
+            ], 500);
+        }
+    }
 }

@@ -35,6 +35,8 @@ ROUTE::prefix('file')->group(function () {
 Route::middleware(AuthenticateWithToken::class)->group(function () {
     Route::prefix('posts')->group(function () {
         Route::post('', [PostController::class, 'create']);
+        Route::put('/{id}', [PostController::class, 'update']);
+        Route::delete('/{id}', [PostController::class, 'delete']);
         Route::get('', [PostController::class, 'find_many']);
 
         Route::post('/{id}/comments', [PostController::class, 'create_comment']);
