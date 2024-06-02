@@ -21,20 +21,20 @@ class UserController extends Controller
         $isFriend = $request->input('isFriend');
 
         $query = DB::table('users')
-        ->leftJoin('friends as requestFriends', 'requestFriends.requestId', '=', 'users.id')
-        ->leftJoin('friends as responseFriends', 'responseFriends.responseId', '=', 'users.id')
-        ->select(
-            'users.id',
-            'users.name',
-            'users.avatar',
-            'requestFriends.status as requestFriendsStatus',
-            'responseFriends.status as responseFriendsStatus',
-        )
-        ->groupBy('users.id')
-        ->where('users.id', '<>', $userId);
-    
-        if($isFriend === 'true') {
-            $query->where(function($query) {
+            ->leftJoin('friends as requestFriends', 'requestFriends.requestId', '=', 'users.id')
+            ->leftJoin('friends as responseFriends', 'responseFriends.responseId', '=', 'users.id')
+            ->select(
+                'users.id',
+                'users.name',
+                'users.avatar',
+                'requestFriends.status as requestFriendsStatus',
+                'responseFriends.status as responseFriendsStatus',
+            )
+            ->groupBy('users.id')
+            ->where('users.id', '<>', $userId);
+
+        if ($isFriend === 'true') {
+            $query->where(function ($query) {
                 $query->where('requestFriends.status', '=', 'APPROVED')
                     ->orWhere('responseFriends.status', '=', 'APPROVED');
             });
@@ -49,6 +49,7 @@ class UserController extends Controller
 
         foreach ($users as $user) {
             $user->isFriend = ($user->requestFriendsStatus === 'APPROVED' || $user->responseFriendsStatus === 'APPROVED');
+            $user->status = $user->requestFriendsStatus === 'PENDING' ? 'PENDING' : $user->responseFriendsStatus;
             unset($user->requestFriendsStatus, $user->responseFriendsStatus);
         }
 
@@ -107,15 +108,15 @@ class UserController extends Controller
         }
 
         $formattedResult = [
-                'id' => $user->id,
-                'name' => $user->name,
-                'avatar' => $user->avatar,
-                'bio' => $user->bio,
-                'isFriend' => $isFriend,
-                'status' => $pendingStatus,
-                'friends'  => $friends,
-            ];
-        
+            'id' => $user->id,
+            'name' => $user->name,
+            'avatar' => $user->avatar,
+            'bio' => $user->bio,
+            'isFriend' => $isFriend,
+            'status' => $pendingStatus,
+            'friends'  => $friends,
+        ];
+
         return response()->json(
             [
                 'message' => 'Successfully',
@@ -246,39 +247,40 @@ class UserController extends Controller
         );
     }
 
-    public function get_list_message(Request $request, $id) {
+    public function get_list_message(Request $request, $id)
+    {
         $ownId = $request->jwtUserId;
         $chatId = $id;
 
-        $messages = DB::table('messenger')->where(function($query) use ($ownId, $chatId) {
-            $query->where(function($query) use ($ownId, $chatId) {
+        $messages = DB::table('messenger')->where(function ($query) use ($ownId, $chatId) {
+            $query->where(function ($query) use ($ownId, $chatId) {
                 $query->where('senderId', $ownId)
-                      ->where('receiveId', $chatId);
-            })->orWhere(function($query) use ($ownId, $chatId) {
+                    ->where('receiveId', $chatId);
+            })->orWhere(function ($query) use ($ownId, $chatId) {
                 $query->where('senderId', $chatId)
-                      ->where('receiveId', $ownId);
+                    ->where('receiveId', $ownId);
             });
         })
-        ->leftJoin('users as sender', 'messenger.senderId', '=', 'sender.id')
-        ->leftJoin('users as receiver', 'messenger.receiveId', '=', 'receiver.id')
-        ->select(
-            'messenger.id as id',
-            'messenger.content as content',
-            'messenger.created_at as date',
-            'sender.name as senderName',
-            'sender.id as senderId',
-            'sender.avatar as senderAvatar',
-            'receiver.name as receiverName',
-            'receiver.avatar as receiverAvatar',
-            'receiver.avatar as receiverId'
-        )
-        ->orderBy('messenger.created_at', 'ASC')
-        ->get();
-        
+            ->leftJoin('users as sender', 'messenger.senderId', '=', 'sender.id')
+            ->leftJoin('users as receiver', 'messenger.receiveId', '=', 'receiver.id')
+            ->select(
+                'messenger.id as id',
+                'messenger.content as content',
+                'messenger.created_at as date',
+                'sender.name as senderName',
+                'sender.id as senderId',
+                'sender.avatar as senderAvatar',
+                'receiver.name as receiverName',
+                'receiver.avatar as receiverAvatar',
+                'receiver.avatar as receiverId'
+            )
+            ->orderBy('messenger.created_at', 'ASC')
+            ->get();
+
 
         foreach ($messages as $message) {
             $isMessageRightSide = $ownId === $message->senderId;
-            if($isMessageRightSide) {
+            if ($isMessageRightSide) {
                 $message->side = 'RIGHT';
             } else {
                 $message->side = 'LEFT';
@@ -288,6 +290,7 @@ class UserController extends Controller
             [
                 'message' => 'Successfully',
                 'data' => $messages
-            ]);
+            ]
+        );
     }
 }
