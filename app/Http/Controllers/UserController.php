@@ -29,6 +29,7 @@ class UserController extends Controller
             'requestFriends.status as requestFriendsStatus',
             'responseFriends.status as responseFriendsStatus',
         )
+        ->groupBy('users.id')
         ->where('users.id', '<>', $userId);
     
         if($isFriend === 'true') {
