@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -292,5 +293,92 @@ class UserController extends Controller
                 'data' => $messages
             ]
         );
+    }
+
+    public function update(Request $request, $id)
+    {
+        try {
+            $user = DB::table('users')->where('id', $id)->first();
+
+            if (!$user) {
+                return response()->json(
+                    [
+                        'message' => 'User not found'
+                    ],
+                    404
+                );
+            }
+
+            $name = $request->input('name');
+            $avatar = $request->input('avatar');
+            //get username from user 
+
+
+
+            if ($avatar) {
+                $updateUser = [
+                    "name" => $name,
+                    "avatar" => $avatar,
+                ];
+            } else {
+                $updateUser = [
+                    "name" => $name,
+                ];
+            }
+
+
+
+            DB::table('users')->where('id', $id)->update($updateUser);
+
+            return response()->json(
+                [
+                    'message' => 'Cập nhật thành công',
+                    'data' => $updateUser
+                ],
+                200
+            );
+        } catch (QueryException $e) {
+            return response()->json(
+                [
+                    'message' => 'Có lỗi xảy ra'
+                ],
+                500
+            );
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                return response()->json(
+                    [
+                        'message' => 'User not found'
+                    ],
+                    404
+                );
+            }
+
+
+
+
+            $user->delete();
+
+            return response()->json(
+                [
+                    'message' => 'User deleted successfully'
+                ],
+                200
+            );
+        } catch (QueryException $e) {
+            return response()->json(
+                [
+                    'message' => 'Error deleting user'
+                ],
+                500
+            );
+        }
     }
 }
