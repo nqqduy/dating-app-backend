@@ -21,7 +21,7 @@ class PostController extends Controller
                 "title" => $title,
                 "content" => $content,
                 "authorId" => $authorId,
-                "date" => Carbon::now()
+                "date" => Carbon::now('Asia/Ho_Chi_Minh')
             ];
 
             DB::table('posts')->insert($insertData);
@@ -94,7 +94,7 @@ class PostController extends Controller
         $insertData = [
             'userId' => $userId,
             'content' => $content,
-            'date' => Carbon::now(),
+            'date' => Carbon::now('Asia/Ho_Chi_Minh'),
             'postId' => $id
         ];
 
